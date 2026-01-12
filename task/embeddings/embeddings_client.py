@@ -2,6 +2,8 @@ import json
 
 import requests
 
+from task._constants import API_KEY
+
 DIAL_EMBEDDINGS = 'https://ai-proxy.lab.epam.com/openai/deployments/{model}/embeddings'
 
 
@@ -17,7 +19,28 @@ DIAL_EMBEDDINGS = 'https://ai-proxy.lab.epam.com/openai/deployments/{model}/embe
 class DialEmbeddingsClient:
     ...
 
+    def __init__(self, deployment_name: str, api_key: str = API_KEY):
+        self.deployment_name = deployment_name
+        self.api_key = api_key
+        self.url = DIAL_EMBEDDINGS.format(model=self.deployment_name)
+        self.headers = {
+            'Content-Type': 'application/json',
+            'api-key': self.api_key
+        }
 
+    def get_embeddings(self, input_list: list, dimensions: int) -> dict[int, list[float]]:
+        payload = {
+            "input": input_list,
+            "dimensions": dimensions
+        }
+        response = requests.post(self.url, headers=self.headers, json=payload)
+
+        if response.status_code != 200:
+            raise Exception(f"Error fetching embeddings: {response.status_code}, {response.text}")
+
+        response_json = response.json()
+
+        return {item['index']: item['embedding'] for item in response_json['data']}
 # Hint:
 #  Response JSON:
 #  {
